@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task Manager</title>
+  <style>
+    body { font-family: Arial; margin: 2rem; }
+    .task { margin-bottom: 1rem; }
+    .tag { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>📝 Task Manager</h1>
+
+  <form method="post" action="/add">
+    <input name="tag" placeholder="Task name" required>
+    <input type="datetime-local" name="date" required>
+
+    <input name="priority" type="number" placeholder="Priority" required>
+    <button type="submit">Add</button>
+  </form>
+
+  <h2>📋 Current Tasks</h2>
+  {% for task in tasks %}
+    <div class="task">
+      <span class="tag">{{ task.tag }}</span> |
+      {{ task.date }} |
+      Priority: {{ task.priority }}
+      <form method="post" action="/remove" style="display:inline">
+        <input type="hidden" name="tag" value="{{ task.tag }}">
+        <button type="submit">Remove</button>
+      </form>
+    </div>
+  {% endfor %}
+</body>
+</html>
