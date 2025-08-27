@@ -10,39 +10,39 @@
     .tab-btn { padding: 6px 12px; cursor: pointer; border: none; background: #eee; border-radius: 6px; }
     .tab-btn.active { background: #ccc; font-weight: bold; }
     .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .tab-content.active { display: block; margin-top: 10px; }
+    .task { padding: 6px; border-bottom: 1px solid #ccc; display: flex; align-items: center; justify-content: space-between; }
+    .task.overdue { color: red; font-weight: bold; }
+    .task .info { flex-grow: 1; }
+    .task form { margin-left: 10px; }
   </style>
 </head>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-
-    const dueTasks = {{ due_tasks | tojson | safe }};
-    dueTasks.forEach(task => {
-      new Notification("⏰ Task Due!", {
-        body: `${task.tag} is due now.`,
-        icon: "/static/icon.png"
-      });
-    });
-    console.log("Due tasks:", dueTasks);
-  });
-
-  function showTab(id, event) {
-    document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
-    event.target.classList.add("active");
-    document.getElementById(id).classList.add("active");
+document.addEventListener("DOMContentLoaded", () => {
+  if (Notification.permission !== "granted") {
+    Notification.requestPermission();
   }
+
+  const dueTasks = {{ due_tasks | tojson | safe }};
+  dueTasks.forEach(task => {
+    new Notification("⏰ Task Due!", {
+      body: `${task.tag} is due now.`,
+      icon: "/static/icon.png"
+    });
+  });
+  console.log("Due tasks:", dueTasks);
+});
+
+function showTab(id, event) {
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById(id).classList.add("active");
+}
 </script>
 
 <body>
-  <button onclick="new Notification('Test', { body: 'This is a test!' })">
-    🔔 Test Notification
-  </button>
-
   <header class="header">
     <h1 class="title">📝 Task Manager</h1>
     <form method="post" action="/logout" class="logout-form">
@@ -51,6 +51,7 @@
   </header>
 
   <main class="container">
+    <!-- Add Task Form -->
     <form method="post" action="/add" class="add-form">
       <input name="tag" placeholder="Task name" required class="input" />
       <input type="datetime-local" name="date" required class="input" />
@@ -67,14 +68,16 @@
       <button class="tab-btn" onclick="showTab('later', event)">Due Later</button>
     </div>
 
-    <!-- Tab contents -->
+    <!-- Due Now -->
     <div id="due" class="tab-content active">
       {% for task in due_tasks %}
-        <div class="task">
-          <span class="tag">{{ task.tag }}</span> |
-          <span class="date">{{ task.date }}</span> |
-          <span class="priority">Priority: {{ task.priority }}</span>
-          <form method="post" action="/remove" class="remove-form">
+        <div class="task overdue">
+          <div class="info">
+            <span class="tag">{{ task.tag }}</span> |
+            <span class="date">{{ task.date }}</span> |
+            <span class="priority">Priority: {{ task.priority }}</span>
+          </div>
+          <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
             <button type="submit" class="btn remove-btn">Remove</button>
           </form>
@@ -84,13 +87,16 @@
       {% endfor %}
     </div>
 
+    <!-- Due Today -->
     <div id="today" class="tab-content">
       {% for task in today_tasks %}
         <div class="task">
-          <span class="tag">{{ task.tag }}</span> |
-          <span class="date">{{ task.date }}</span> |
-          <span class="priority">Priority: {{ task.priority }}</span>
-          <form method="post" action="/remove" class="remove-form">
+          <div class="info">
+            <span class="tag">{{ task.tag }}</span> |
+            <span class="date">{{ task.date }}</span> |
+            <span class="priority">Priority: {{ task.priority }}</span>
+          </div>
+          <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
             <button type="submit" class="btn remove-btn">Remove</button>
           </form>
@@ -100,13 +106,16 @@
       {% endfor %}
     </div>
 
+    <!-- Due Later -->
     <div id="later" class="tab-content">
       {% for task in later_tasks %}
         <div class="task">
-          <span class="tag">{{ task.tag }}</span> |
-          <span class="date">{{ task.date }}</span> |
-          <span class="priority">Priority: {{ task.priority }}</span>
-          <form method="post" action="/remove" class="remove-form">
+          <div class="info">
+            <span class="tag">{{ task.tag }}</span> |
+            <span class="date">{{ task.date }}</span> |
+            <span class="priority">Priority: {{ task.priority }}</span>
+          </div>
+          <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
             <button type="submit" class="btn remove-btn">Remove</button>
           </form>
@@ -115,6 +124,7 @@
         <p>No tasks due later.</p>
       {% endfor %}
     </div>
+
   </main>
 </body>
 </html>
