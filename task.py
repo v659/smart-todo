@@ -1,11 +1,9 @@
 from datetime import datetime
 
-
 class Task:
     def __init__(self, tag: str, date: str, priority: int):
         if "T" in date:
             try:
-                print("correct")
                 # Convert from input like 2025-08-05T15:42 to 2025-08-05 15:42
                 date = datetime.strptime(date, "%Y-%m-%dT%H:%M").strftime("%Y-%m-%d %H:%M")
             except ValueError:
@@ -28,10 +26,9 @@ class Task:
             "tag": self.tag,
             "date": self.date,
             "priority": self.priority,
-            "is_due": self.is_due()  # <-- Add this
+            "is_due": self.is_due()
         }
 
     @classmethod
     def from_dict(cls, data):
         return cls(tag=data["tag"], date=data["date"], priority=data["priority"])
-
