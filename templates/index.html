@@ -1,35 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Task Manager</title>
-  <style>
-    body { font-family: Arial; margin: 2rem; }
-    .task { margin-bottom: 1rem; }
-    .tag { font-weight: bold; }
-  </style>
+  <link rel="stylesheet" href="/static/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    const dueTasks = {{ due_tasks | tojson | safe }};
+    dueTasks.forEach(task => {
+      new Notification("⏰ Task Due!", {
+        body: `${task.tag} is due now.`,
+        icon: "/static/icon.png"
+      });
+    });
+    console.log("Due tasks:", dueTasks);
+  });
+</script>
 <body>
-  <h1>📝 Task Manager</h1>
+  <button onclick="new Notification('Test', { body: 'This is a test!' })">
+    🔔 Test Notification
+  </button>
 
-  <form method="post" action="/add">
-    <input name="tag" placeholder="Task name" required>
-    <input type="datetime-local" name="date" required>
+  <header class="header">
+    <h1 class="title">📝 Task Manager</h1>
+    <form method="post" action="/logout" class="logout-form">
+      <button type="submit" class="btn logout-btn">Logout</button>
+    </form>
+  </header>
 
-    <input name="priority" type="number" placeholder="Priority" required>
-    <button type="submit">Add</button>
-  </form>
+  <main class="container">
+    <form method="post" action="/add" class="add-form">
+      <input name="tag" placeholder="Task name" required class="input" />
+      <input type="datetime-local" name="date" required class="input" />
+      <input name="priority" type="number" placeholder="Priority" required class="input" />
+      <button type="submit" class="btn add-btn">Add</button>
+    </form>
 
-  <h2>📋 Current Tasks</h2>
-  {% for task in tasks %}
-    <div class="task">
-      <span class="tag">{{ task.tag }}</span> |
-      {{ task.date }} |
-      Priority: {{ task.priority }}
-      <form method="post" action="/remove" style="display:inline">
-        <input type="hidden" name="tag" value="{{ task.tag }}">
-        <button type="submit">Remove</button>
-      </form>
+    <h2 class="section-title">📋 Current Tasks</h2>
+    <div class="task-list">
+      {% for task in tasks %}
+        <div class="task">
+          <span class="tag">{{ task.tag }}</span> |
+          <span class="date">{{ task.date }}</span> |
+          <span class="priority">Priority: {{ task.priority }}</span>
+          <form method="post" action="/remove" class="remove-form">
+            <input type="hidden" name="tag" value="{{ task.tag }}">
+            <button type="submit" class="btn remove-btn">Remove</button>
+          </form>
+        </div>
+      {% endfor %}
     </div>
-  {% endfor %}
+  </main>
+
 </body>
 </html>
