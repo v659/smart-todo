@@ -29,6 +29,8 @@ def save_user_manager(user: str, tm: TaskManager):
     tm.save(get_user_file(user))
 
 
+from datetime import datetime
+
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
     user = request.session.get("user")
@@ -38,16 +40,42 @@ async def homepage(request: Request):
     tm = get_user_manager(user)
     tm.sort_by_priority()
     task_dicts = [task.to_dict() for task in tm.get_all_tasks()]
-    due_tasks = [t for t in task_dicts if t.get("is_due")]
 
-    print("DUE TASKS:", due_tasks)  # ← add this line
+    now = datetime.now()
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    due_tasks = []
+    today_tasks = []
+    later_tasks = []
+
+    for t in task_dicts:
+        # Parse date string -> datetime
+        try:
+            task_time = datetime.fromisoformat(t["date"])
+        except ValueError:
+            # If your date format is different, adjust here
+            continue
+
+        if task_time <= now:
+            due_tasks.append(t)
+        elif now < task_time <= today_end:
+            today_tasks.append(t)
+        else:
+            later_tasks.append(t)
+
+    print("DUE:", due_tasks)
+    print("TODAY:", today_tasks)
+    print("LATER:", later_tasks)
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "tasks": task_dicts,
         "due_tasks": due_tasks,
+        "today_tasks": today_tasks,
+        "later_tasks": later_tasks,
         "user": user
     })
+
 
 
 
