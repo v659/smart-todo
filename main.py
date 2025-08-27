@@ -6,9 +6,13 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 from task import Task
 from taskManager import TaskManager
-
+from dotenv import load_dotenv
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key="my_super_secret_key")
+
+load_dotenv()
+SECRET_KEY = os.environ.get("SECRET_KEY")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
