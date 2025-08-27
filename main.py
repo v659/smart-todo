@@ -3,37 +3,88 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-import os
 from task import Task
 from taskManager import TaskManager
-from dotenv import load_dotenv
+from UserManager import UserManager
+from datetime import datetime
+import os
+
 app = FastAPI()
-
-load_dotenv()
-SECRET_KEY = os.environ.get("SECRET_KEY")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
-
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SECRET_KEY", "dev_key"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+USER_FILE = "data/users.json"
 
-def get_user_file(user: str):
+def get_user_manager():
+    um = UserManager()
+    um.load(USER_FILE)
+    return um
+
+def save_user_manager(um):
+    um.save(USER_FILE)
+
+def get_task_file(user: str):
     os.makedirs("data", exist_ok=True)
-    return f"data/{user}.json"
+    return f"data/{user}_tasks.json"
 
-def get_user_manager(user: str):
+def get_task_manager(user: str):
     tm = TaskManager()
-    try:
-        tm.load(get_user_file(user))
-    except FileNotFoundError:
-        pass
+    tm.load(get_task_file(user))
     return tm
 
-def save_user_manager(user: str, tm: TaskManager):
-    tm.save(get_user_file(user))
+def save_task_manager(user: str, tm: TaskManager):
+    tm.save(get_task_file(user))
 
+# -------------------- Routes --------------------
 
-from datetime import datetime
+@app.get("/login")
+async def login_form():
+    return HTMLResponse("""
+        <h2>Login</h2>
+        <form method="post" action="/login">
+            <input name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <a href="/register">Register</a>
+    """)
+
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...), request: Request = None):
+    um = get_user_manager()
+    if not um.verify_user(username, password):
+        return HTMLResponse("Invalid username or password", status_code=400)
+
+    request.session["user"] = username
+    return RedirectResponse("/", status_code=302)
+
+@app.get("/register")
+async def register_form():
+    return HTMLResponse("""
+        <h2>Register</h2>
+        <form method="post" action="/register">
+            <input name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Register</button>
+        </form>
+        <a href="/login">Login</a>
+    """)
+
+@app.post("/register")
+async def register(username: str = Form(...), password: str = Form(...)):
+    um = get_user_manager()
+    try:
+        um.add_user(username, password)
+    except ValueError:
+        return HTMLResponse("User already exists", status_code=400)
+    save_user_manager(um)
+    return RedirectResponse("/login", status_code=302)
+
+@app.post("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=302)
 
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
@@ -41,23 +92,19 @@ async def homepage(request: Request):
     if not user:
         return RedirectResponse("/login")
 
-    tm = get_user_manager(user)
+    tm = get_task_manager(user)
     tm.sort_by_priority()
     task_dicts = [task.to_dict() for task in tm.get_all_tasks()]
 
     now = datetime.now()
     today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    due_tasks = []
-    today_tasks = []
-    later_tasks = []
+    due_tasks, today_tasks, later_tasks = [], [], []
 
     for t in task_dicts:
-        # Parse date string -> datetime
         try:
-            task_time = datetime.fromisoformat(t["date"])
+            task_time = datetime.strptime(t["date"], "%Y-%m-%d %H:%M")
         except ValueError:
-            # If your date format is different, adjust here
             continue
 
         if task_time <= now:
@@ -67,21 +114,13 @@ async def homepage(request: Request):
         else:
             later_tasks.append(t)
 
-    print("DUE:", due_tasks)
-    print("TODAY:", today_tasks)
-    print("LATER:", later_tasks)
-
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "tasks": task_dicts,
         "due_tasks": due_tasks,
         "today_tasks": today_tasks,
         "later_tasks": later_tasks,
         "user": user
     })
-
-
-
 
 @app.post("/add")
 async def add_task(request: Request, tag: str = Form(...), date: str = Form(...), priority: int = Form(...)):
@@ -89,12 +128,10 @@ async def add_task(request: Request, tag: str = Form(...), date: str = Form(...)
     if not user:
         return RedirectResponse("/login")
 
-    tm = get_user_manager(user)
-    task = Task(tag=tag, date=date, priority=priority)
-    tm.add_task(task)
-    save_user_manager(user, tm)
+    tm = get_task_manager(user)
+    tm.add_task(Task(tag=tag, date=date, priority=priority))
+    save_task_manager(user, tm)
     return RedirectResponse("/", status_code=302)
-
 
 @app.post("/remove")
 async def remove_task(request: Request, tag: str = Form(...)):
@@ -102,38 +139,7 @@ async def remove_task(request: Request, tag: str = Form(...)):
     if not user:
         return RedirectResponse("/login")
 
-    tm = get_user_manager(user)
+    tm = get_task_manager(user)
     tm.remove_task(tag)
-    save_user_manager(user, tm)
+    save_task_manager(user, tm)
     return RedirectResponse("/", status_code=302)
-
-
-@app.get("/login")
-async def login_form():
-    return HTMLResponse("""
-        <h2>Login</h2>
-        <form method="post" action="/login">
-            <input name="username" placeholder="Enter your username" required>
-            <button type="submit">Login</button>
-        </form>
-    """)
-
-@app.post("/login")
-async def login(username: str = Form(...), request: Request = None):
-    request.session["user"] = username
-    return RedirectResponse("/", status_code=302)
-
-
-@app.post("/logout")
-async def logout_button(request: Request):
-    request.session.clear()
-    return RedirectResponse("/login", status_code=302)
-
-
-@app.get("/tasks")
-async def get_tasks(request: Request):
-    user = request.session.get("user")
-    if not user:
-        return []
-    tm = get_user_manager(user)
-    return [task.to_dict() for task in tm.get_all_tasks()]
