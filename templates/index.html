@@ -5,6 +5,13 @@
   <title>Task Manager</title>
   <link rel="stylesheet" href="/static/style.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    .tabs { display: flex; gap: 10px; margin: 15px 0; }
+    .tab-btn { padding: 6px 12px; cursor: pointer; border: none; background: #eee; border-radius: 6px; }
+    .tab-btn.active { background: #ccc; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
 </head>
 
 <script>
@@ -22,7 +29,15 @@
     });
     console.log("Due tasks:", dueTasks);
   });
+
+  function showTab(id, event) {
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById(id).classList.add("active");
+  }
 </script>
+
 <body>
   <button onclick="new Notification('Test', { body: 'This is a test!' })">
     🔔 Test Notification
@@ -43,9 +58,18 @@
       <button type="submit" class="btn add-btn">Add</button>
     </form>
 
-    <h2 class="section-title">📋 Current Tasks</h2>
-    <div class="task-list">
-      {% for task in tasks %}
+    <h2 class="section-title">📋 Tasks</h2>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('due', event)">Due Now</button>
+      <button class="tab-btn" onclick="showTab('today', event)">Due Today</button>
+      <button class="tab-btn" onclick="showTab('later', event)">Due Later</button>
+    </div>
+
+    <!-- Tab contents -->
+    <div id="due" class="tab-content active">
+      {% for task in due_tasks %}
         <div class="task">
           <span class="tag">{{ task.tag }}</span> |
           <span class="date">{{ task.date }}</span> |
@@ -55,9 +79,42 @@
             <button type="submit" class="btn remove-btn">Remove</button>
           </form>
         </div>
+      {% else %}
+        <p>No tasks due now.</p>
+      {% endfor %}
+    </div>
+
+    <div id="today" class="tab-content">
+      {% for task in today_tasks %}
+        <div class="task">
+          <span class="tag">{{ task.tag }}</span> |
+          <span class="date">{{ task.date }}</span> |
+          <span class="priority">Priority: {{ task.priority }}</span>
+          <form method="post" action="/remove" class="remove-form">
+            <input type="hidden" name="tag" value="{{ task.tag }}">
+            <button type="submit" class="btn remove-btn">Remove</button>
+          </form>
+        </div>
+      {% else %}
+        <p>No tasks for today.</p>
+      {% endfor %}
+    </div>
+
+    <div id="later" class="tab-content">
+      {% for task in later_tasks %}
+        <div class="task">
+          <span class="tag">{{ task.tag }}</span> |
+          <span class="date">{{ task.date }}</span> |
+          <span class="priority">Priority: {{ task.priority }}</span>
+          <form method="post" action="/remove" class="remove-form">
+            <input type="hidden" name="tag" value="{{ task.tag }}">
+            <button type="submit" class="btn remove-btn">Remove</button>
+          </form>
+        </div>
+      {% else %}
+        <p>No tasks due later.</p>
       {% endfor %}
     </div>
   </main>
-
 </body>
 </html>
