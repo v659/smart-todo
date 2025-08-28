@@ -11,10 +11,45 @@
     .tab-btn.active { background: #ccc; font-weight: bold; }
     .tab-content { display: none; }
     .tab-content.active { display: block; margin-top: 10px; }
-    .task { padding: 6px; border-bottom: 1px solid #ccc; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Swipe tasks */
+    .task {
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      border-bottom: 1px solid #ccc;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .task .info {
+      padding: 10px;
+      transition: transform 0.3s ease;
+    }
+
+    .task .delete-btn {
+      position: absolute;
+      right: -100px;
+      top: 0;
+      bottom: 0;
+      width: 100px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: right 0.3s ease;
+    }
+
+    .task.swiped .info {
+      transform: translateX(-100px);
+    }
+
+    .task.swiped .delete-btn {
+      right: 0;
+    }
+
     .task.overdue { color: red; font-weight: bold; }
     .task .info { flex-grow: 1; }
-    .task form { margin-left: 10px; }
   </style>
 </head>
 
@@ -31,7 +66,57 @@ document.addEventListener("DOMContentLoaded", () => {
       icon: "/static/icon.png"
     });
   });
-  console.log("Due tasks:", dueTasks);
+
+  // Swipe / drag logic for mobile + desktop
+  const tasks = document.querySelectorAll(".task");
+
+  tasks.forEach(task => {
+    let startX = 0;
+    let currentX = 0;
+    let swiped = false;
+    let isDragging = false;
+
+    // --- Touch ---
+    task.addEventListener("touchstart", e => {
+      startX = e.touches[0].clientX;
+    });
+
+    task.addEventListener("touchmove", e => {
+      currentX = e.touches[0].clientX;
+      if (startX - currentX > 50) {
+        task.classList.add("swiped");
+        swiped = true;
+      }
+      if (currentX - startX > 50 && swiped) {
+        task.classList.remove("swiped");
+        swiped = false;
+      }
+    });
+
+    // --- Mouse ---
+    task.addEventListener("mousedown", e => {
+      startX = e.pageX;
+      isDragging = true;
+    });
+
+    document.addEventListener("mousemove", e => {
+      if (!isDragging) return;
+      currentX = e.pageX - startX;
+
+      if (currentX < -50) {
+        task.classList.add("swiped");
+        swiped = true;
+      }
+      if (currentX > 50 && swiped) {
+        task.classList.remove("swiped");
+        swiped = false;
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+  });
 });
 
 function showTab(id, event) {
@@ -79,7 +164,7 @@ function showTab(id, event) {
           </div>
           <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
-            <button type="submit" class="btn remove-btn">Remove</button>
+            <button type="submit" class="delete-btn">Delete</button>
           </form>
         </div>
       {% else %}
@@ -98,7 +183,7 @@ function showTab(id, event) {
           </div>
           <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
-            <button type="submit" class="btn remove-btn">Remove</button>
+            <button type="submit" class="delete-btn">Delete</button>
           </form>
         </div>
       {% else %}
@@ -117,7 +202,7 @@ function showTab(id, event) {
           </div>
           <form method="post" action="/remove">
             <input type="hidden" name="tag" value="{{ task.tag }}">
-            <button type="submit" class="btn remove-btn">Remove</button>
+            <button type="submit" class="delete-btn">Delete</button>
           </form>
         </div>
       {% else %}
