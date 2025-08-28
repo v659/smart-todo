@@ -5,7 +5,7 @@ Notifications are not working yet - this is currently experimental, and so that 
 # Features
 - Login and registering
 - Adding tasks
-- Removing tasks
+- Removing tasks(swipe to delete)
 - Notifications
 - log in/log out
 
