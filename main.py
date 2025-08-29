@@ -41,6 +41,9 @@ def save_task_manager(user: str, tm: TaskManager):
 @app.get("/login")
 async def login_form():
     return HTMLResponse("""
+        <head>
+          <link rel="stylesheet" href="/static/style.css" />
+        <head>
         <h2>Login</h2>
         <form method="post" action="/login">
             <input name="username" placeholder="Username" required>
@@ -62,6 +65,9 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
 @app.get("/register")
 async def register_form():
     return HTMLResponse("""
+        <head>
+          <link rel="stylesheet" href="/static/style.css" />
+        <head>
         <h2>Register</h2>
         <form method="post" action="/register">
             <input name="username" placeholder="Username" required>
