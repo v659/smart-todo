@@ -11,7 +11,7 @@ import os
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SECRET_KEY", "dev_key"))
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 templates = Jinja2Templates(directory="templates")
 
 USER_FILE = "data/users.json"
@@ -42,7 +42,7 @@ def save_task_manager(user: str, tm: TaskManager):
 async def login_form():
     return HTMLResponse("""
         <head>
-          <link rel="stylesheet" href="/static/style.css" />
+          <link rel="stylesheet" href="/templates/style.css" />
         <head>
         <h2>Login</h2>
         <form method="post" action="/login">
@@ -66,7 +66,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
 async def register_form():
     return HTMLResponse("""
         <head>
-          <link rel="stylesheet" href="/static/style.css" />
+          <link rel="stylesheet" href="/templates/style.css" />
         <head>
         <h2>Register</h2>
         <form method="post" action="/register">
